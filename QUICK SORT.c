@@ -36,7 +36,7 @@ int main() {
 
     printf("Enter array elements:\n");
     for (i = 0; i < n; i++) {
-        printf("Enter element %d: ");
+        printf("Enter element %d: ", i + 1); // Added the element number placeholder
         scanf("%d", &arr[i]);
     }
 
@@ -48,4 +48,4 @@ int main() {
     }
 
     return 0;
-}
+}    
