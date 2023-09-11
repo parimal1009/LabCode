@@ -32,14 +32,11 @@ void append(struct node** head, int data) {
 
 void insertAtBeginning(struct node** head, int data) {
     struct node* newNode = createNode(data);
-
-    if (*head == NULL) {
-        *head = newNode;
-    } else {
-        newNode->next = *head;
+    newNode->next = *head;
+    if (*head != NULL) {
         (*head)->prev = newNode;
-        *head = newNode;
     }
+    *head = newNode;
 }
 
 void deleteAtEnd(struct node** head) {
@@ -48,18 +45,22 @@ void deleteAtEnd(struct node** head) {
         return;
     }
 
+    if ((*head)->next == NULL) {
+        free(*head);
+        *head = NULL;
+        return;
+    }
+
     struct node* current = *head;
     while (current->next != NULL) {
         current = current->next;
     }
 
-    if (current->prev == NULL) {
-        free(current);
-        *head = NULL;
-    } else {
+    if (current->prev != NULL) {
         current->prev->next = NULL;
-        free(current);
     }
+
+    free(current);
 }
 
 void deleteAtBeginning(struct node** head) {
@@ -70,50 +71,76 @@ void deleteAtBeginning(struct node** head) {
 
     struct node* temp = *head;
     *head = (*head)->next;
-
     if (*head != NULL) {
         (*head)->prev = NULL;
     }
-
     free(temp);
 }
 
-struct node* concatenate(struct node* list1, struct node* list2) {
-    if (list1 == NULL) {
-        return list2;
-    } else if (list2 == NULL) {
-        return list1;
-    }
-
-    struct node* current = list1;
-    while (current->next != NULL) {
+void printForward(struct node* head) {
+    struct node* current = head;
+    while (current != NULL) {
+        printf("%d ", current->data);
         current = current->next;
     }
-
-    current->next = list2;
-    list2->prev = current;
-
-    return list1;
+    printf("\n");
 }
 
-struct node* unionDLL(struct node* list1, struct node* list2) {
-    struct node* result = NULL;
-    int seen[1000] = {0}; 
+void reverse(struct node** head) {
+    struct node* temp = NULL;
+    struct node* current = *head;
 
-    struct node* current = list1;
     while (current != NULL) {
-        if (!seen[current->data]) {
-            append(&result, current->data);
-            seen[current->data] = 1;
+        temp = current->prev;
+        current->prev = current->next;
+        current->next = temp;
+        current = current->prev;
+    }
+
+    if (temp != NULL) {
+        *head = temp->prev;
+    }
+}
+
+void concatenate(struct node** first, struct node* second) {
+    if (*first == NULL) {
+        *first = second;
+    } else {
+        struct node* current = *first;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = second;
+        if (second != NULL) {
+            second->prev = current;
+        }
+    }
+}
+
+int search(struct node* head, int data) {
+    struct node* current = head;
+    while (current != NULL) {
+        if (current->data == data) {
+            return 1;
         }
         current = current->next;
     }
+    return 0;
+}
 
-    current = list2;
+struct node* findUnion(struct node* first, struct node* second) {
+    struct node* result = NULL;
+    struct node* current = first;
+
     while (current != NULL) {
-        if (!seen[current->data]) {
+        append(&result, current->data);
+        current = current->next;
+    }
+
+    current = second;
+    while (current != NULL) {
+        if (!search(result, current->data)) {
             append(&result, current->data);
-            seen[current->data] = 1;
         }
         current = current->next;
     }
@@ -121,21 +148,13 @@ struct node* unionDLL(struct node* list1, struct node* list2) {
     return result;
 }
 
-struct node* intersection(struct node* list1, struct node* list2) {
+struct node* findIntersection(struct node* first, struct node* second) {
     struct node* result = NULL;
-    int seen[1000] = {0}; 
+    struct node* current = first;
 
-    struct node* current = list1;
     while (current != NULL) {
-        seen[current->data]++;
-        current = current->next;
-    }
-
-    current = list2;
-    while (current != NULL) {
-        if (seen[current->data] > 0) {
+        if (search(second, current->data)) {
             append(&result, current->data);
-            seen[current->data] = 0;
         }
         current = current->next;
     }
@@ -150,14 +169,32 @@ int main() {
     append(&head1, 50);
     append(&head1, 70);
 
+    printf("First DLL in forward direction:\n");
+    printForward(head1);
+
     append(&head2, 30);
-    append(&head2, 70);
+    append(&head2, 40);
 
-    head1 = concatenate(head1, head2);
+    printf("Second DLL in forward direction:\n");
+    printForward(head2);
 
-    struct node* unionResult = unionDLL(head1, head2);
+    reverse(&head1);
 
-    struct node* intersectionResult = intersection(head1, head2);
+    printf("First DLL in reverse direction:\n");
+    printForward(head1);
+
+    concatenate(&head1, head2);
+
+    printf("Concatenated DLL:\n");
+    printForward(head1);
+
+    struct node* unionResult = findUnion(head1, head2);
+    printf("Union of DLLs:\n");
+    printForward(unionResult);
+
+    struct node* intersectionResult = findIntersection(head1, head2);
+    printf("Intersection of DLLs:\n");
+    printForward(intersectionResult);
 
     while (head1 != NULL) {
         struct node* temp = head1;
@@ -165,15 +202,9 @@ int main() {
         free(temp);
     }
 
-    while (unionResult != NULL) {
-        struct node* temp = unionResult;
-        unionResult = unionResult->next;
-        free(temp);
-    }
-
-    while (intersectionResult != NULL) {
-        struct node* temp = intersectionResult;
-        intersectionResult = intersectionResult->next;
+    while (head2 != NULL) {
+        struct node* temp = head2;
+        head2 = head2->next;
         free(temp);
     }
 
