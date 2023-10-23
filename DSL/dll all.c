@@ -1,14 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Define a structure for a doubly linked list node
 struct node {
     int data;
     struct node* next;
     struct node* prev;
 };
 
-// Function to create a new node for DLL
 struct node* createNode(int data) {
     struct node* newNode = (struct node*)malloc(sizeof(struct node));
     newNode->data = data;
@@ -17,8 +15,19 @@ struct node* createNode(int data) {
     return newNode;
 }
 
-// Function to insert a node at the end of the DLL
-void append(struct node** head, int data) {
+void insertAtBeginning(struct node** head, int data) {
+    struct node* newNode = createNode(data);
+
+    if (*head == NULL) {
+        *head = newNode;
+    } else {
+        newNode->next = *head;
+        (*head)->prev = newNode;
+        *head = newNode;
+    }
+}
+
+void insertAtLast(struct node** head, int data) {
     struct node* newNode = createNode(data);
 
     if (*head == NULL) {
@@ -33,29 +42,55 @@ void append(struct node** head, int data) {
     }
 }
 
-// Function to insert a node at the beginning of the DLL
-void insertAtBeginning(struct node** head, int data) {
-    struct node* newNode = createNode(data);
-    newNode->next = *head;
-    newNode->prev = NULL;
-    
-    if (*head != NULL) {
-        (*head)->prev = newNode;
+void insertAtRandomLocation(struct node** head, int data, int position) {
+    if (position == 0) {
+        insertAtBeginning(head, data);
+        return;
     }
-    
-    *head = newNode;
+
+    struct node* newNode = createNode(data);
+    struct node* current = *head;
+
+    for (int i = 0; i < position - 1; i++) {
+        if (current == NULL) {
+            printf("Invalid position for insertion.\n");
+            free(newNode);
+            return;
+        }
+        current = current->next;
+    }
+
+    if (current == NULL) {
+        printf("Invalid position for insertion.\n");
+        free(newNode);
+        return;
+    }
+
+    newNode->next = current->next;
+    newNode->prev = current;
+    current->next = newNode;
+    if (newNode->next != NULL) {
+        newNode->next->prev = newNode;
+    }
 }
 
-// Function to delete a node at the end of the DLL
-void deleteAtEnd(struct node** head) {
+void deleteFromBeginning(struct node** head) {
     if (*head == NULL) {
         printf("List is empty, cannot delete.\n");
         return;
     }
 
-    if ((*head)->next == NULL) {
-        free(*head);
-        *head = NULL;
+    struct node* temp = *head;
+    *head = (*head)->next;
+    if (*head != NULL) {
+        (*head)->prev = NULL;
+    }
+    free(temp);
+}
+
+void deleteFromLast(struct node** head) {
+    if (*head == NULL) {
+        printf("List is empty, cannot delete.\n");
         return;
     }
 
@@ -64,31 +99,46 @@ void deleteAtEnd(struct node** head) {
         current = current->next;
     }
 
-    if (current->prev != NULL) {
+    if (current->prev == NULL) {
+        *head = NULL;
+    } else {
         current->prev->next = NULL;
     }
-    
+
     free(current);
 }
 
-// Function to delete a node at the beginning of the DLL
-void deleteAtBeginning(struct node** head) {
+void deleteNodeAfterLocation(struct node** head, int position) {
     if (*head == NULL) {
         printf("List is empty, cannot delete.\n");
         return;
     }
 
-    struct node* temp = *head;
-    *head = (*head)->next;
-    
-    if (*head != NULL) {
-        (*head)->prev = NULL;
+    struct node* current = *head;
+
+    for (int i = 0; i < position; i++) {
+        if (current == NULL) {
+            printf("Invalid position for deletion.\n");
+            return;
+        }
+        current = current->next;
     }
-    
+
+    if (current == NULL) {
+        printf("Invalid position for deletion.\n");
+        return;
+    }
+
+    struct node* temp = current->next;
+    if (temp != NULL) {
+        current->next = temp->next;
+        if (temp->next != NULL) {
+            temp->next->prev = current;
+        }
+    }
     free(temp);
 }
 
-// Function to print the DLL in forward direction
 void printForward(struct node* head) {
     struct node* current = head;
     while (current != NULL) {
@@ -98,10 +148,22 @@ void printForward(struct node* head) {
     printf("\n");
 }
 
-// Function to reverse the DLL
+void concatenate(struct node** first, struct node* second) {
+    if (*first == NULL) {
+        *first = second;
+    } else if (second != NULL) {
+        struct node* firstEnd = *first;
+        while (firstEnd->next != NULL) {
+            firstEnd = firstEnd->next;
+        }
+        firstEnd->next = second;
+        second->prev = firstEnd;
+    }
+}
+
 void reverse(struct node** head) {
-    struct node* temp = NULL;
     struct node* current = *head;
+    struct node* temp = NULL;
 
     while (current != NULL) {
         temp = current->prev;
@@ -111,126 +173,69 @@ void reverse(struct node** head) {
     }
 
     if (temp != NULL) {
-        *head = temp->prev; // Update the head
+        *head = temp->prev;
     }
-}
-
-// Function to concatenate two DLLs
-void concatenate(struct node** first, struct node* second) {
-    if (*first == NULL) {
-        *first = second;
-    } else {
-        struct node* current = *first;
-        while (current->next != NULL) {
-            current = current->next;
-        }
-        current->next = second;
-        if (second != NULL) {
-            second->prev = current;
-        }
-    }
-}
-
-// Function to find the union of two DLLs
-struct node* unionDLL(struct node* list1, struct node* list2) {
-    struct node* result = NULL;
-
-    // Insert elements of list1 into the result
-    while (list1 != NULL) {
-        append(&result, list1->data);
-        list1 = list1->next;
-    }
-
-    // Insert elements of list2 into the result, skipping duplicates
-    while (list2 != NULL) {
-        if (!search(result, list2->data)) {
-            append(&result, list2->data);
-        }
-        list2 = list2->next;
-    }
-
-    return result;
-}
-
-// Function to find the intersection of two DLLs
-struct node* intersectionDLL(struct node* list1, struct node* list2) {
-    struct node* result = NULL;
-
-    // Iterate through list1
-    while (list1 != NULL) {
-        if (search(list2, list1->data)) {
-            append(&result, list1->data);
-        }
-        list1 = list1->next;
-    }
-
-    return result;
-}
-
-// Function to search for a value in the DLL
-int search(struct node* head, int key) {
-    struct node* current = head;
-    while (current != NULL) {
-        if (current->data == key) {
-            return 1; // Found
-        }
-        current = current->next;
-    }
-    return 0; // Not found
 }
 
 int main() {
-    struct node* head1 = NULL;
-    struct node* head2 = NULL;
+    struct node* head = NULL;
 
-    // Append nodes to the end of the first DLL
-    append(&head1, 50);
-    append(&head1, 70);
+    int choice;
+    int data;
+    int position;
 
-    // Print the first DLL in forward direction
-    printf("First DLL in forward direction:\n");
-    printForward(head1);
+    while (1) {
+        printf("\n1. Insert at Beginning\n2. Insert at Last\n3. Insert at Random Location\n4. Delete from Beginning\n5. Delete from Last\n6. Delete Node After Specified Location\n7. Display\n8. Concatenate\n9. Reverse\n10. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
 
-    // Append nodes to the end of the second DLL
-    append(&head2, 30);
-    append(&head2, 40);
-
-    // Print the second DLL in forward direction
-    printf("Second DLL in forward direction:\n");
-    printForward(head2);
-
-    // Reverse the first DLL
-    reverse(&head1);
-
-    // Print the first DLL in reverse direction
-    printf("First DLL in reverse direction:\n");
-    printForward(head1);
-
-    // Concatenate the second DLL to the end of the first DLL
-    concatenate(&head1, head2);
-
-    // Print the concatenated DLL
-    printf("Concatenated DLL:\n");
-    printForward(head1);
-
-    // Find the union of the two DLLs
-    struct node* unionResult = unionDLL(head1, head2);
-    printf("Union of DLLs:\n");
-    printForward(unionResult);
-
-    // Find the intersection of the two DLLs
-    struct node* intersectionResult = intersectionDLL(head1, head2);
-    printf("Intersection of DLLs:\n");
-    printForward(intersectionResult);
-
-    // Search for a value in the DLL
-    int searchValue = 30;
-    if (search(head1, searchValue)) {
-        printf("%d found in DLL.\n", searchValue);
-    } else {
-        printf("%d not found in DLL.\n", searchValue);
+        switch (choice) {
+            case 1:
+                printf("Enter data to insert at the beginning: ");
+                scanf("%d", &data);
+                insertAtBeginning(&head, data);
+                break;
+            case 2:
+                printf("Enter data to insert at the last: ");
+                scanf("%d", &data);
+                insertAtLast(&head, data);
+                break;
+            case 3:
+                printf("Enter data to insert: ");
+                scanf("%d", &data);
+                printf("Enter the position for insertion: ");
+                scanf("%d", &position);
+                insertAtRandomLocation(&head, data, position);
+                break;
+            case 4:
+                deleteFromBeginning(&head);
+                break;
+            case 5:
+                deleteFromLast(&head);
+                break;
+            case 6:
+                printf("Enter the position to delete after: ");
+                scanf("%d", &position);
+                deleteNodeAfterLocation(&head, position);
+                break;
+            case 7:
+                printf("Doubly Linked List: ");
+                printForward(head);
+                break;
+            case 8:
+                printf("Concatenation is not supported in a doubly linked list.\n");
+                break;
+            case 9:
+                reverse(&head);
+                printf("List reversed.\n");
+                break;
+            case 10:
+                printf("Exiting the program.\n");
+                exit(0);
+            default:
+                printf("Invalid choice. Try again.\n");
+        }
     }
 
-    // Free the memory and clean up
-    while (head1 != NULL) {
-        struct node* temp = head
+    return 0;
+}
